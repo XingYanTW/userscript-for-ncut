@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         NCUT e-learn Function Unlocker
 // @namespace    http://tampermonkey.net/
-// @version      1.1
-// @description  Unlock NCUT e-learn Function such as F12 and select text
+// @version      1.2
+// @description  Unlock NCUT e-learn Function such as F12, select text and enable copy
 // @author       xy
 // @match        https://elearn.ncut.edu.tw/*
 // @grant        none
@@ -36,15 +36,27 @@
         }
     }, true);
 
+    // Enable Copy/Cut
+    window.addEventListener('copy', function(e) {
+        e.stopImmediatePropagation();
+    }, true);
+    window.addEventListener('cut', function(e) {
+        e.stopImmediatePropagation();
+    }, true);
+
     function unlockUI() {
         document.oncontextmenu = null;
         document.onselectstart = null;
         document.ondragstart = null;
         document.onmousedown = null;
+        document.oncopy = null;
+        document.oncut = null;
 
         if (document.body) {
             document.body.oncontextmenu = null;
             document.body.onselectstart = null;
+            document.body.oncopy = null;
+            document.body.oncut = null;
             document.body.style.userSelect = "text";
             document.body.style.webkitUserSelect = "text";
         }
