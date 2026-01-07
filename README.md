@@ -5,7 +5,8 @@
 | 腳本名稱 | 版本 | 功能描述 | 安裝 |
 | :--- | :---: | :--- | :---: |
 | **NCUT e-learn PDF Downloader** | 1.5 | **PDF 下載器**<br>在平台的 PDF 閱讀器頁面中解鎖下載權限，自動偵測隱藏按鈕並提供浮動下載鈕。 | [⬇️ 安裝腳本](https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT%20e-learn%20PDF%20Downloader-1.3.user.js) |
-| **NCUT e-Learning Function Unlocker** | 1.2 | **功能限制解鎖**<br>恢復右鍵選單、選取複製文字 (Enable Copy)、F12 開發者工具等被鎖定的瀏覽器原生功能。 | [⬇️ 安裝腳本](https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT%20e-learn%20Function%20Unlocker-1.1.user.js) |
+| **NCUT e-Learning Function Unlocker** | 1.2 | **功能限制解鎖**<br>恢復右鍵選單、選取複製文字 (Enable Copy)、F12 開發者工具等被鎖定的瀏覽器原生功能。 | [⬇️ 安裝腳本](https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT%20e-learn%20Function%20Unlocker-1.2.user.js) |
+| **NCUT NMSD Auto Redirect** | 1.0 | **自動重定向**<br>訪問勤益入口網 (nmsd) 首頁時，自動導向至 wbcmss 系統。 | [⬇️ 安裝腳本](https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT%20NMSD%20Auto%20Redirect-1.0.user.js) |
 
 ## 安裝方式
 
