@@ -16,8 +16,8 @@
     'use strict';
 
     function addExportButton() {
-        // Only run if we are in the main frame
-        if (window.self !== window.top) return;
+        // Only run if we are in the s_main frame
+        if (window.name !== 's_main') return;
 
         // Prevent duplicates
         if (document.getElementById('ncut-course-export-btn')) return;
