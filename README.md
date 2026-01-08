@@ -5,7 +5,8 @@
 | 腳本名稱 | 版本 | 功能描述 | 安裝 |
 | :--- | :---: | :--- | :---: |
 | **NCUT e-learn PDF Downloader** | 1.5 | **PDF 下載器**<br>在平台的 PDF 閱讀器頁面中解鎖下載權限，自動偵測隱藏按鈕並提供浮動下載鈕。 | [⬇️ 安裝腳本](https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT%20e-learn%20PDF%20Downloader.user.js) |
-| **NCUT e-Learning Function Unlocker** | 1.12 | **功能限制解鎖**<br>恢復右鍵選單、選取複製文字 (Enable Copy)、F12 開發者工具。修正 `launchActivity` 連結行為：透過攔截 `window.open` 與表單提交，深入檢查實際目標網址 (包含 `href` 參數)。內部連結強制在原視窗 (iframe) 開啟，避免開新分頁；外部連結則強制開啟新分頁，避免 X-Frame-Options 錯誤。 | [⬇️ 安裝腳本](https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT%20e-learn%20Function%20Unlocker.user.js) |
+| **NCUT e-Learning Function Unlocker** | 1.11 | **功能限制解鎖**<br>恢復右鍵選單、選取複製文字 (Enable Copy)、F12 開發者工具。修正 `launchActivity` 連結行為：透過攔截 `window.open` 與表單提交，智慧判斷網域。內部連結 (ncut.edu.tw) 維持在原視窗 (iframe) 開啟，外部連結 (包含 iframe 內部的表單提交) 則強制開啟新分頁，徹底修復 X-Frame-Options 錯誤。 | [⬇️ 安裝腳本](https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT%20e-learn%20Function%20Unlocker.user.js) |
+| **NCUT e-learn Course Export** | 1.0 | **匯出教材清單**<br>在課程頁面新增「匯出教材清單」按鈕，可抓取該課程所有教材的標題與直接連結。 | [⬇️ 安裝腳本](https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT%20e-learn%20Course%20Export-1.0.user.js) |
 | **NCUT NMSD Auto Redirect** | 1.0 | **自動重定向**<br>訪問勤益入口網 (nmsd) 首頁時，自動導向至 wbcmss 系統。 | [⬇️ 安裝腳本](https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT%20NMSD%20Auto%20Redirect.user.js) |
 
 ## 安裝方式
