@@ -16,8 +16,11 @@
     'use strict';
 
     function addExportButton() {
-        // Only run if we are in the main frame or one that might check recursive
-        // But for UI, let's put it on the top window if possible, or check if we can find context first
+        // Only run if we are in the main frame
+        if (window.self !== window.top) return;
+
+        // Prevent duplicates
+        if (document.getElementById('ncut-course-export-btn')) return;
         
         const btn = document.createElement('button');
         btn.id = 'ncut-course-export-btn';

@@ -90,7 +90,7 @@
         window.isLaunching = true;
         setTimeout(() => {
             window.isLaunching = false;
-        }, 3000);
+        }, 1000);
     });
 
     var checkTimer = setInterval(function() {
