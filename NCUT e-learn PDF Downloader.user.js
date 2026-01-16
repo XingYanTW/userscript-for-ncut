@@ -7,8 +7,8 @@
 // @match        https://elearn.ncut.edu.tw/learn/path/viewPDF.php*
 // @grant        unsafeWindow
 // @run-at       document-end
-// @updateURL    https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT e-learn PDF Downloader.user.js
-// @downloadURL  https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT e-learn PDF Downloader.user.js
+// @updateURL    https://raw.githubusercontent.com/xydesu/userscript-for-ncut/main/NCUT e-learn PDF Downloader.user.js
+// @downloadURL  https://raw.githubusercontent.com/xydesu/userscript-for-ncut/main/NCUT e-learn PDF Downloader.user.js
 // ==/UserScript==
 
 (function() {

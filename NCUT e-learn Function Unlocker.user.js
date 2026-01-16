@@ -7,8 +7,8 @@
 // @match        https://elearn.ncut.edu.tw/*
 // @grant        none
 // @run-at       document-start
-// @updateURL    https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT e-learn Function Unlocker-1.3.user.js
-// @downloadURL  https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT e-learn Function Unlocker-1.3.user.js
+// @updateURL    https://raw.githubusercontent.com/xydesu/userscript-for-ncut/main/NCUT e-learn Function Unlocker-1.3.user.js
+// @downloadURL  https://raw.githubusercontent.com/xydesu/userscript-for-ncut/main/NCUT e-learn Function Unlocker-1.3.user.js
 // ==/UserScript==
 
 (function() {

@@ -7,8 +7,8 @@
 // @match        https://nmsd.ncut.edu.tw/*
 // @grant        none
 // @run-at       document-start
-// @updateURL    https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT NMSD Auto Redirect.user.js
-// @downloadURL  https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT NMSD Auto Redirect.user.js
+// @updateURL    https://raw.githubusercontent.com/xydesu/userscript-for-ncut/main/NCUT NMSD Auto Redirect.user.js
+// @downloadURL  https://raw.githubusercontent.com/xydesu/userscript-for-ncut/main/NCUT NMSD Auto Redirect.user.js
 // ==/UserScript==
 
 (function() {

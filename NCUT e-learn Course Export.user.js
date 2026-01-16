@@ -8,8 +8,8 @@
 // @grant        GM_setClipboard
 // @grant        unsafeWindow
 // @run-at       document-end
-// @updateURL    https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT e-learn Course Export-1.0.user.js
-// @downloadURL  https://raw.githubusercontent.com/XingYanTW/userscript-for-ncut/main/NCUT e-learn Course Export-1.0.user.js
+// @updateURL    https://raw.githubusercontent.com/xydesu/userscript-for-ncut/main/NCUT e-learn Course Export-1.0.user.js
+// @downloadURL  https://raw.githubusercontent.com/xydesu/userscript-for-ncut/main/NCUT e-learn Course Export-1.0.user.js
 // ==/UserScript==
 
 (function() {
