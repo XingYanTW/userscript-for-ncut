@@ -4,6 +4,7 @@
 
 | 腳本名稱 | 功能描述 | 安裝 |
 | :--- | :--- | :---: |
+| **NCUT e-learn SCORM Path Fixer** | **同步載入優化器**<br>將 SCORM 目錄由同步改為非同步載入，解決進入課程時網頁凍結 (Not Responding) 的問題。 | [⬇️](https://raw.githubusercontent.com/xydesu/userscript-for-ncut/refs/heads/main/NCUT%20e-learn%20SCORM%20Path%20Fixer.user.js) |
 | **NCUT e-learn PDF Downloader** | **PDF 下載器**<br>在平台的 PDF 閱讀器頁面中解鎖下載權限，自動偵測隱藏按鈕並提供浮動下載鈕。 | [⬇️](https://raw.githubusercontent.com/xydesu/userscript-for-ncut/main/NCUT%20e-learn%20PDF%20Downloader.user.js) |
 | **NCUT e-learn Function Unlocker** | **功能限制解鎖**<br>恢復右鍵選單、選取複製文字 (Enable Copy)、F12 開發者工具。 | [⬇️](https://raw.githubusercontent.com/xydesu/userscript-for-ncut/main/NCUT%20e-learn%20Function%20Unlocker.user.js) |
 | **NCUT e-learn Block New Page** | **攔截新分頁開啟**<br>透過 API 獲取課程連結，攔截 `launchActivity` 以精確阻止新分頁開啟，直接在 iframe 中載入內容 (若非外部連結)。 | [⬇️](https://raw.githubusercontent.com/xydesu/userscript-for-ncut/main/NCUT%20e-learn%20Block%20New%20Page.user.js) |
