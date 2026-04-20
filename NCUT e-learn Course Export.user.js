@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         NCUT e-learn Course Export
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Export course content list from NCUT e-learn
+// @version      1.1
+// @description  Export course content list from NCUT e-learn (Fixed nested items & URLs)
 // @author       xy
 // @match        https://elearn.ncut.edu.tw/*
 // @grant        GM_setClipboard
@@ -44,6 +44,9 @@
     }
 
     function runExport() {
+        var btn = document.getElementById('ncut-course-export-btn');
+        if(btn) btn.innerText = '讀取中...';
+
         // 1. 找變數
         function findContext(w) {
             try {
@@ -58,6 +61,7 @@
         
         var ctx = findContext(window.top);
         if (!ctx) {
+            if(btn) btn.innerText = '匯出教材清單';
             alert("找不到課程 ID (cid) 或 Ticket，請確認您已進入某個課程頁面。");
             return;
         }
@@ -67,27 +71,44 @@
         console.log("正在讀取課程列表...", apiUrl);
 
         fetch(apiUrl).then(r => r.json()).then(res => {
-            // 3. 直接讀取正確的路徑 data.path.item
+            if(btn) btn.innerText = '匯出教材清單';
+            
+            // 3. 讀取與展開節點
             if (res.data && res.data.path && res.data.path.item) {
-                var items = res.data.path.item;
+                var rawItems = res.data.path.item;
+                
+                // 遞迴展開所有節點 (解決子目錄教材被忽略的問題)
+                function flatten(items) {
+                    let result = [];
+                    let arr = Array.isArray(items) ? items : [items];
+                    arr.forEach(i => {
+                        if (!i) return;
+                        result.push(i);
+                        if (i.item) result = result.concat(flatten(i.item));
+                    });
+                    return result;
+                }
+
+                var allItems = flatten(rawItems);
                 var list = [];
 
-                items.forEach(item => {
-                    // 過濾掉沒有連結或 about:blank 的項目
-                    if (item.href && item.href !== 'about:blank') {
-                        // 處理 @ 符號 (如果有的話)
-                        var link = item.href.includes('@') ? item.href.split('@')[1] : item.href;
-                        
-                        // Handle relative URLs
-                        if (!link.startsWith('http')) {
-                            link = new URL(link, window.location.href).href;
-                        }
-
-                        list.push({
-                            title: item.text,
-                            url: link
-                        });
+                allItems.forEach(item => {
+                    let link = item.href || '';
+                    if (link.includes('@')) link = link.split('@')[1];
+                    
+                    let prefix = '';
+                    if (!link || link === 'about:blank') {
+                        prefix = '📁 [單元目錄] ';
+                        link = window.location.origin + `/base/10001/course/${ctx.cid}/content/about_blank`;
+                    } else if (!link.startsWith('http')) {
+                        // 強制對齊 e-learn 的底層實體檔案路徑
+                        link = window.location.origin + `/base/10001/course/${ctx.cid}/content/${link}`;
                     }
+
+                    list.push({
+                        title: prefix + (item.text || '未命名'),
+                        url: link
+                    });
                 });
 
                 console.table(list);
@@ -97,6 +118,7 @@
                 alert("無法取得教材清單，結構不符合預期。");
             }
         }).catch(err => {
+            if(btn) btn.innerText = '匯出教材清單';
             console.error(err);
             alert("讀取失敗");
         });
@@ -135,6 +157,7 @@
         textarea.style.height = '300px';
         textarea.style.marginBottom = '10px';
         textarea.style.fontFamily = 'monospace';
+        textarea.style.whiteSpace = 'pre';
         
         // Format content
         const content = list.map(i => `${i.title}\n${i.url}`).join('\n\n');
