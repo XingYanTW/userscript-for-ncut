@@ -7,6 +7,8 @@
 // @match        https://elearn.ncut.edu.tw/*
 // @grant        none
 // @run-at       document-start
+// @updateURL    https://raw.githubusercontent.com/xydesu/userscript-for-ncut/refs/heads/main/NCUT%20e-learn%20SCORM%20Path%20Fixer.user.js
+// @downloadURL  https://raw.githubusercontent.com/xydesu/userscript-for-ncut/refs/heads/main/NCUT%20e-learn%20SCORM%20Path%20Fixer.user.js
 // ==/UserScript==
 
 (function() {
