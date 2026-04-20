@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         NCUT e-learn 萬用工具箱
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  解決 Frameset 畫不出視窗的問題，改由右側主畫面 (s_main) 負責渲染設定介面。
+// @version      1.3
+// @description  解決 Frameset 畫不出視窗的問題，改由右側主畫面負責渲染，並完美整合原生 PDF 閱讀器(直連跳轉)。
 // @author       xy
 // @match        https://elearn.ncut.edu.tw/*
 // @grant        GM_setValue
@@ -22,7 +22,8 @@
         courseExport: GM_getValue('courseExport', true),
         funcUnlock: GM_getValue('funcUnlock', true),
         pdfDownload: GM_getValue('pdfDownload', true),
-        scormFix: GM_getValue('scormFix', true)
+        scormFix: GM_getValue('scormFix', true),
+        nativePdfViewer: GM_getValue('nativePdfViewer', true)
     };
 
     function saveConfig(key, value) {
@@ -70,24 +71,56 @@
         courseExport: function() {
             if (!config.courseExport || window.name !== 's_main') return;
             window.addEventListener('load', () => {
+                if (!document.body) return; // 避免在純 frameset 頁面找不到 body 報錯
                 const btn = document.createElement('button');
                 btn.innerHTML = '匯出教材清單';
                 Object.assign(btn.style, { position: 'fixed', bottom: '70px', right: '20px', zIndex: '99999', padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' });
+
                 btn.onclick = () => {
                     function findCtx(w){ try { if (w.cid && w.pTicket) return w; for (let i=0; i<w.frames.length; i++){ let f=findCtx(w.frames[i]); if(f) return f; } } catch(e){} return null; }
                     let ctx = findCtx(unsafeWindow.top);
                     if (!ctx) { alert("找不到課程 ID，請確認已進入課程。"); return; }
 
+                    btn.innerText = '讀取中...';
+
                     fetch(`/xmlapi/index.php?action=my-course-path-info&onlyProgress=0&descendant=1&cid=${ctx.cid}&ticket=${ctx.pTicket}`)
-                        .then(r=>r.json()).then(res => {
-                            let items = res.data?.path?.item || [];
-                            if(!Array.isArray(items)) items = [items];
-                            let list = items.filter(i => i.href && i.href !== 'about:blank').map(i => {
-                                let link = i.href.includes('@') ? i.href.split('@')[1] : i.href;
-                                if (!link.startsWith('http')) link = new URL(link, window.location.href).href;
-                                return { title: i.text, url: link };
+                        .then(r => r.json()).then(res => {
+                            btn.innerText = '匯出教材清單';
+                            let rawItems = res.data?.path?.item || [];
+
+                            function flatten(items) {
+                                let result = [];
+                                let arr = Array.isArray(items) ? items : [items];
+                                arr.forEach(i => {
+                                    if (!i) return;
+                                    result.push(i);
+                                    if (i.item) result = result.concat(flatten(i.item));
+                                });
+                                return result;
+                            }
+
+                            let allItems = flatten(rawItems);
+
+                            let list = allItems.map(i => {
+                                let link = i.href || '';
+                                if (link.includes('@')) link = link.split('@')[1];
+
+                                let prefix = '';
+                                if (!link || link === 'about:blank') {
+                                    prefix = '📁 [單元目錄] ';
+                                    link = window.location.origin + `/base/10001/course/${ctx.cid}/content/about_blank`;
+                                } else if (!link.startsWith('http')) {
+                                    link = window.location.origin + `/base/10001/course/${ctx.cid}/content/${link}`;
+                                }
+
+                                return { title: prefix + (i.text || '未命名'), url: link };
                             });
+
                             showResult(list);
+                        }).catch(err => {
+                            btn.innerText = '匯出教材清單';
+                            alert("清單讀取失敗，請確認網路或登入狀態。");
+                            console.error(err);
                         });
                 };
                 document.body.appendChild(btn);
@@ -99,15 +132,25 @@
                 modal = document.createElement('div');
                 modal.id = 'export-result-modal';
                 Object.assign(modal.style, { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '600px', maxHeight: '80vh', backgroundColor: 'white', border: '1px solid #ccc', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', zIndex: '100000', padding: '20px', borderRadius: '8px', display: 'flex', flexDirection: 'column' });
+
                 const title = document.createElement('h3');
                 title.innerText = `匯出結果 (${list.length} 筆)`;
                 title.style.marginTop = '0';
+
                 const textarea = document.createElement('textarea');
-                Object.assign(textarea.style, { width: '100%', height: '300px', marginBottom: '10px', fontFamily: 'monospace' });
+                Object.assign(textarea.style, { width: '100%', height: '300px', marginBottom: '10px', fontFamily: 'monospace', whiteSpace: 'pre' });
                 textarea.value = list.map(i => `${i.title}\n${i.url}`).join('\n\n');
+
                 const closeBtn = document.createElement('button'); closeBtn.innerText = '關閉'; closeBtn.onclick = () => modal.remove();
-                const copyBtn = document.createElement('button'); copyBtn.innerText = '複製到剪貼簿'; copyBtn.style.marginRight = '10px'; copyBtn.onclick = () => { textarea.select(); document.execCommand('copy'); copyBtn.innerText = '已複製!'; setTimeout(() => copyBtn.innerText = '複製到剪貼簿', 2000); };
-                const btnContainer = document.createElement('div'); btnContainer.appendChild(copyBtn); btnContainer.appendChild(closeBtn);
+                const copyBtn = document.createElement('button'); copyBtn.innerText = '複製到剪貼簿'; copyBtn.style.marginRight = '10px';
+                copyBtn.onclick = () => {
+                    textarea.select(); document.execCommand('copy');
+                    copyBtn.innerText = '已複製!'; setTimeout(() => copyBtn.innerText = '複製到剪貼簿', 2000);
+                };
+
+                const btnContainer = document.createElement('div');
+                btnContainer.appendChild(copyBtn); btnContainer.appendChild(closeBtn);
+
                 modal.appendChild(title); modal.appendChild(textarea); modal.appendChild(btnContainer);
                 document.body.appendChild(modal);
             }
@@ -132,8 +175,10 @@
         },
 
         pdfDownload: function() {
-            if (!config.pdfDownload || !location.href.includes('viewPDF.php')) return;
+            // 如果已經啟用了原生 PDF 閱讀器，原生的工具列就自帶下載鈕了，不需再注入自訂按鈕
+            if (!config.pdfDownload || config.nativePdfViewer || !location.href.includes('viewPDF.php')) return;
             const check = setInterval(() => {
+                if (!document.body) return; // 防呆
                 const nativeBtn = document.getElementById('download');
                 const isHidden = nativeBtn && (window.getComputedStyle(nativeBtn).display === 'none' || nativeBtn.classList.contains('hiddenMediumView') && window.innerWidth < 800);
                 if (isHidden && !document.getElementById('custom-dl')) {
@@ -177,11 +222,43 @@
                 },
                 get: function() { return savedOnload; }
             });
+        },
+
+        nativePdfViewer: function() {
+            if (!config.nativePdfViewer || !location.href.includes('viewPDF.php')) return;
+
+            // 1. 搶在 PDF.js 渲染前，先隱藏整個 HTML，避免畫面閃爍
+            const style = document.createElement('style');
+            style.innerHTML = 'html { display: none !important; }';
+            document.documentElement.appendChild(style);
+
+            // 2. 抓取預設載入的 PDF 路徑
+            const checkPdf = setInterval(() => {
+                const pdfPath = unsafeWindow.DEFAULT_URL;
+                if (!pdfPath) return; // 等待變數出現
+                clearInterval(checkPdf);
+
+                try {
+                    // 3. 解碼相對路徑 (例如 %2F 轉回 /)
+                    const decodedPath = decodeURIComponent(pdfPath);
+                    // 利用 URL 物件將相對路徑與當前網址組合成正確的絕對路徑
+                    const fullUrl = new URL(decodedPath, window.location.href).href;
+
+                    console.log("[NCUT Tool] 直連真實 PDF 檔案:", fullUrl);
+
+                    // 4. 直接將本框架跳轉過去 (瀏覽器會用內建的 PDF 引擎開啟)
+                    window.location.replace(fullUrl);
+
+                } catch (e) {
+                    console.error("[NCUT Tool] URL 轉換失敗", e);
+                    document.documentElement.style.display = ''; // 若失敗則恢復顯示原版
+                }
+            }, 20);
         }
     };
 
     // ==========================================
-    // 3. UI 介面與跨框架通訊 (最終極解法)
+    // 3. UI 介面與跨框架通訊
     // ==========================================
 
     function createItem(label, key) {
@@ -202,7 +279,7 @@
         const style = document.createElement('style');
         style.id = 'ncut-custom-style';
         style.innerHTML = `
-            #ncut-box-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 320px; background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 1000001; padding: 20px; font-family: "Microsoft JhengHei", sans-serif; color: #333; }
+            #ncut-box-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 1000001; padding: 20px; font-family: "Microsoft JhengHei", sans-serif; color: #333; }
             #ncut-box-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000000; }
             .ncut-header { font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; display: flex; justify-content: space-between; }
             .ncut-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
@@ -224,6 +301,7 @@
                 ${createItem('顯示教材匯出按鈕', 'courseExport')}
                 ${createItem('解鎖右鍵與複製 (F12)', 'funcUnlock')}
                 ${createItem('強制顯示 PDF 下載鈕', 'pdfDownload')}
+                ${createItem('啟用瀏覽器原生 PDF 閱讀器', 'nativePdfViewer')}
                 ${createItem('SCORM 載入優化 (防凍結)', 'scormFix')}
                 <div style="font-size:11px; color:gray; text-align:center; margin-top:15px;">* 更改設定後請重新整理網頁生效</div>
             </div>
@@ -257,18 +335,15 @@
     }
 
     function initUI() {
-        // [A] 在所有視窗加入監聽器。只有「不是 Frameset 的一般網頁」才能負責顯示彈出視窗
         window.addEventListener('message', (event) => {
             if (event.data === 'NCUT_TOGGLE_MODAL') {
                 const isFrameset = document.getElementsByTagName('frameset').length > 0;
-                // 我們指定右側的 s_main，或是沒有使用 frameset 的單頁來顯示視窗
                 if (window.name === 's_main' || (!isFrameset && window === window.top)) {
                     toggleModal();
                 }
             }
         });
 
-        // [B] 無論在哪個框架，只要找到選單，就插入按鈕
         const searchInterval = setInterval(() => {
             const links = document.querySelectorAll('ul.nav li a, a');
             let targetLink = Array.from(links).find(a => a.textContent && a.textContent.trim() === '全校課程');
@@ -288,20 +363,17 @@
 
                     newA.addEventListener('click', (e) => {
                         e.preventDefault();
-
-                        // 當按鈕被點擊，直接通知右邊的主畫面 (s_main) 打開介面
                         if (unsafeWindow.parent && unsafeWindow.parent.frames['s_main']) {
                             unsafeWindow.parent.frames['s_main'].postMessage('NCUT_TOGGLE_MODAL', '*');
                         } else {
-                            // 備用方案：廣播給所有視窗
                             window.postMessage('NCUT_TOGGLE_MODAL', '*');
                             if (unsafeWindow.top) unsafeWindow.top.postMessage('NCUT_TOGGLE_MODAL', '*');
                         }
                     });
 
                     newLi.appendChild(newA);
-                    targetLi.parentNode.insertBefore(newDivider, newLi);
-                    targetLi.parentNode.insertBefore(newLi, targetLi);
+                    targetLi.parentNode.insertBefore(newDivider, targetLi);
+                    targetLi.parentNode.insertBefore(newLi, newDivider);
 
                     clearInterval(searchInterval);
                 }
@@ -317,6 +389,7 @@
     Modules.blockNewPage();
     Modules.funcUnlock();
     Modules.scormFix();
+    Modules.nativePdfViewer();
     Modules.pdfDownload();
     Modules.courseExport();
 
