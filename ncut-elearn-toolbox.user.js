@@ -300,8 +300,8 @@
                     });
 
                     newLi.appendChild(newA);
-                    targetLi.parentNode.insertBefore(newLi, targetLi);
                     targetLi.parentNode.insertBefore(newDivider, newLi);
+                    targetLi.parentNode.insertBefore(newLi, targetLi);
 
                     clearInterval(searchInterval);
                 }
