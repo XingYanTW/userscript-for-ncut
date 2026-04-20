@@ -1,10 +1,11 @@
 // ==UserScript==
-// @name         NCUT e-learn SCORM Path Fixer
+// @name         NCUT e-learn SCORM Path Fixer & Blocker
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Fetches course list via API to get real URLs, then intercepts launchActivity to block new pages accurately.
+// @version      1.1
+// @description  1. 非同步載入目錄與伺服器時間 2. 封鎖 wmcookie 圖片 3. 防止同步請求導致的瀏覽器凍結
 // @author       xy
 // @match        https://elearn.ncut.edu.tw/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=elearn.ncut.edu.tw
 // @grant        none
 // @run-at       document-start
 // @updateURL    https://raw.githubusercontent.com/xydesu/userscript-for-ncut/refs/heads/main/NCUT%20e-learn%20SCORM%20Path%20Fixer.user.js
@@ -14,79 +15,107 @@
 (function() {
     'use strict';
 
-    console.log('%c[SCORM-Fixer] 已啟動，攔截同步加載器...', 'color: #00ff00; font-weight: bold;');
+    console.log('%c[SCORM-Fixer] 腳本已啟動，正在接管環境...', 'color: #00ff00; font-weight: bold;');
 
-    // 1. 攔截 window.onload，防止原網頁的同步邏輯直接鎖死 UI
+    const BLOCK_TARGET = 'lcms.ncut.edu.tw//lms/wmcookie/set/';
+
+    // ==========================================
+    // 1. 圖片封鎖邏輯 (針對靜態與動態產生的 <img>)
+    // ==========================================
+
+    // 攔截原型鏈上的 src 設定，防止任何 JS 動態插入該圖片
+    const originalSrcDescriptor = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+    Object.defineProperty(HTMLImageElement.prototype, 'src', {
+        set: function(value) {
+            if (typeof value === 'string' && value.includes(BLOCK_TARGET)) {
+                console.warn('[SCORM-Fixer] 已攔截動態圖片請求:', value);
+                return; // 直接攔截，不設定 src
+            }
+            originalSrcDescriptor.set.call(this, value);
+        },
+        get: function() {
+            return originalSrcDescriptor.get.call(this);
+        }
+    });
+
+    // 監控 DOM 變動，處理 HTML 原始碼中硬編碼的 <img> 標籤
+    const imgObserver = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            mutation.addedNodes.forEach(node => {
+                if (node.tagName === 'IMG' && node.src && node.src.includes(BLOCK_TARGET)) {
+                    node.removeAttribute('src'); // 清除路徑防止後續觸發
+                    node.remove(); // 從 DOM 移除
+                    console.log('%c[SCORM-Fixer] 已從 HTML 移除 Cookie 設定圖片標籤', 'color: #ff4500');
+                }
+            });
+        }
+    });
+    imgObserver.observe(document.documentElement, { childList: true, subtree: true });
+
+
+    // ==========================================
+    // 2. SCORM 非同步優化邏輯
+    // ==========================================
+
     let savedOnload = null;
+
+    // 攔截 window.onload，避免觸發原有的同步 SCORM 載入流程
     Object.defineProperty(window, 'onload', {
         set: function(fn) {
-            console.log('[SCORM-Fixer] 偵測到網頁註冊 onload，進行改寫...');
+            console.log('[SCORM-Fixer] 偵測到網頁註冊 onload，切換至優化載入器...');
             savedOnload = fn;
-            // 執行我們自己的優化版載入邏輯
             optimizedLoader();
         },
         get: function() { return savedOnload; }
     });
 
     async function optimizedLoader() {
-        // 等待基本的 DOM 元素出現 (如 displayPanel)
-        const checkInterval = setInterval(async () => {
-            if (document.getElementById('displayPanel') || document.body) {
-                clearInterval(checkInterval);
-                await startAsyncFetch();
-            }
-        }, 10);
-    }
+        // 等待必要的 DOM 元素 (如 displayPanel) 或是 Body 出現
+        while (!document.body) {
+            await new Promise(r => setTimeout(r, 10));
+        }
 
-    async function startAsyncFetch() {
         try {
-            // 模擬原程式碼需要的全域變數
-            if (typeof(_SYNC_NON_IMPLEMENTED) != "undefined") window._SYNC_NON_IMPLEMENTED = true;
-
-            // 取得原本要請求的 URL
-            const url = 'SCORM_loadCA.php' + (window.ser || '');
-            console.log(`[SCORM-Fixer] 開始非同步抓取: ${url}`);
-
-            // 建立一個簡單的 Loading 提示
+            // 建立狀態顯示 UI
             const loadingMsg = document.createElement('div');
-            loadingMsg.innerHTML = '🚀 正在優化載入目錄中...';
+            loadingMsg.id = 'scorm-fixer-msg';
+            loadingMsg.innerHTML = '🚀 正在優化目錄載入 (Async)...';
             Object.assign(loadingMsg.style, {
                 position: 'fixed', top: '10px', right: '10px', background: '#333',
-                color: '#fff', padding: '10px', borderRadius: '5px', zIndex: '99999', fontSize: '12px'
+                color: '#00ff00', padding: '10px', borderRadius: '5px', zIndex: '99999',
+                fontSize: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.5)'
             });
             document.body.appendChild(loadingMsg);
 
-            // 使用 fetch 進行非同步請求
+            // 準備請求 URL
+            const url = 'SCORM_loadCA.php' + (window.ser || '');
+            console.log(`[SCORM-Fixer] 開始非同步抓取教材目錄: ${url}`);
+
+            // 使用 fetch 進行非同步請求，避免畫面凍結
             const response = await fetch(url);
             const xmlString = await response.text();
 
-            // 將結果填入原有的 xmlDoc 物件中，確保後續 xmlProcessor() 不會報錯
+            // 解析 XML 並掛載到原網頁期待的全域變數 window.xmlDoc
+            const parser = new DOMParser();
+            window.xmlDoc = parser.parseFromString(xmlString, "text/xml");
+
+            // 攔截舊式同步載入方法，防止重複執行
             if (window.xmlDoc) {
-                if (window.xmlDoc.loadXML) {
-                    window.xmlDoc.loadXML(xmlString);
-                } else {
-                    const parser = new DOMParser();
-                    const newDoc = parser.parseFromString(xmlString, "text/xml");
-                    // 覆蓋原本的 xmlDoc
-                    window.xmlDoc = newDoc;
-                }
+                window.xmlDoc.load = function() { return true; };
             }
 
-            console.log('[SCORM-Fixer] XML 接收完成，啟動 xmlProcessor');
-
-            // 執行原網頁的處理邏輯
+            // 執行原網頁的渲染邏輯 (xmlProcessor)
             if (typeof window.xmlProcessor === 'function') {
-                // 使用 setTimeout 分開執行，避免 DOM 生成時卡頓
                 setTimeout(() => {
                     window.xmlProcessor();
-                    loadingMsg.style.background = '#007b00';
                     loadingMsg.innerHTML = '✅ 載入完成';
+                    loadingMsg.style.background = '#006400';
                     setTimeout(() => loadingMsg.remove(), 2000);
                 }, 0);
             }
 
-            // 啟動定時追蹤功能
-            if (typeof window.setReading === 'function') {
+            // 啟動定時閱讀追蹤 (確保學習時數正常計算)
+            if (typeof window.setReading === 'function' && window.traceReadingIntervalTime) {
                 window.setInterval(() => {
                     window.setReading('end', window.traceReadingIntervalTime);
                 }, window.traceReadingIntervalTime);
@@ -94,15 +123,9 @@
 
         } catch (e) {
             console.error('[SCORM-Fixer] 載入失敗:', e);
+            const msg = document.getElementById('scorm-fixer-msg');
+            if (msg) msg.innerHTML = '❌ 載入失敗';
         }
-    }
-
-    // 2. 攔截 xmlDoc.load 避免它在其他地方又被同步調用
-    if (window.xmlDoc) {
-        window.xmlDoc.load = function() {
-            console.warn('[SCORM-Fixer] 攔截到同步 load 調用，已取消以避免卡頓');
-            return true;
-        };
     }
 
 })();
